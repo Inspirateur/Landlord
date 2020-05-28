@@ -2,15 +2,12 @@ package io.github.Inspirateur.Landlord;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
-
 public class Main extends JavaPlugin {
-    @Override
-    public void onEnable() {
-        getLogger().info("onEnable is called!");
-    }
+	private LandData landData;
 
-    @Override
-    public void onDisable() {
-        getLogger().info("onDisable is called!");
-    }
+	@Override
+	public void onEnable() {
+		getLogger().info("onEnable is called!");
+		landData = new LandData();
+	}
 }
