@@ -1,25 +1,35 @@
 package io.github.Inspirateur.Landlord;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class LandData {
-	private Map<String, Map<String , ArrayList<Zone>>> zones;
+	// <world, <player, [zone1, ...]>>
+	private Map<UUID, Map<UUID , List<Zone>>> zones;
 
 	public LandData() {
 		this.load();
 	}
 
-	public void addZone(String world, String player, Zone zone) {
+	public Optional<Zone> getZone(UUID w, Point p) {
+		for (List<Zone> zones: this.zones.get(w).values()) {
+			for (Zone zone: zones) {
+				if(zone.contains(p)) {
+					return Optional.of(zone);
+				}
+			}
+		}
+		return Optional.empty();
+	}
+
+	public void addZone(UUID world, Zone zone) {
 		if(!zones.containsKey(world)) {
 			zones.put(world, new HashMap<>());
 		}
-		if(!zones.get(world).containsKey(player)) {
-			zones.get(world).put(player, new ArrayList<>());
+		if(!zones.get(world).containsKey(zone.owner)) {
+			zones.get(world).put(zone.owner, new ArrayList<>());
 		}
-		zones.get(world).get(player).add(zone);
+		zones.get(world).get(zone.owner).add(zone);
 		this.save();
 	}
 
@@ -40,7 +50,8 @@ public class LandData {
 		try {
 			FileInputStream fileIn = new FileInputStream("plugins/Landlord/land_data.ser");
 			ObjectInputStream in = new ObjectInputStream(fileIn);
-			this.zones = (Map<String, Map<String, ArrayList<Zone>>>) in.readObject();
+			//noinspection unchecked
+			this.zones = (Map<UUID, Map<UUID, List<Zone>>>) in.readObject();
 			in.close();
 			fileIn.close();
 		} catch (IOException | ClassNotFoundException i) {

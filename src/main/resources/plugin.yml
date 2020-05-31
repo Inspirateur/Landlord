@@ -1,3 +1,27 @@
 name: Landlord
-version: 1.15
+version: "1.15"
 main: io.github.Inspirateur.Landlord.Main
+author: Inspirateur
+description: Plugin to claim and protect lands in exchange for resources
+commands:
+  corner1:
+    description: place the first corner of the zone you want to claim
+    usage: /corner1
+  corner2:
+    description: place the other corner of the zone you want to claim, corner1 and 2 are opposite corners of a cuboid
+    usage: /corner2
+  land:
+    description: checks whether or not you're in a claimed land
+    usage: /land
+  protect:
+    description: to add a protection to a zone you own
+    usage: /protect
+  unprotect:
+    description: to remove a protection from your land
+    usage: /unprotect
+  add:
+    description: to add a player in your land
+    usage: /add <Player>
+  remove:
+    description: to remove a player from your land
+    usage: /remove <Player>
