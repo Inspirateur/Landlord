@@ -10,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,12 +29,17 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	public void onEnable() {
 		getLogger().info("onEnable is called!");
 		landData = new LandData();
-		for(World world: getServer().getWorlds()) {
-			landData.registerWorld(world.getUID());
+		World world = null;
+		for(World w: getServer().getWorlds()) {
+			landData.registerWorld(w.getUID());
+			world = w;
 		}
 		playerCache = new PlayerCache();
 		partialZones = new HashMap<>();
 		Bukkit.getPluginManager().registerEvents(this, this);
+		int zoneParticlesTask = getServer().getScheduler().scheduleSyncRepeatingTask(
+			this, new ZoneParticles(partialZones, world), 0L, 20L
+		);
 	}
 
 	@Override

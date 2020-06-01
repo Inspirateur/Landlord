@@ -11,6 +11,19 @@ public class Point implements Serializable {
 		this.z = z;
 	}
 
+	public int get(int i) {
+		switch (i) {
+			case 0:
+				return x;
+			case 1:
+				return y;
+			case 2:
+				return z;
+			default:
+				return 0;
+		}
+	}
+
 	@Override
 	public String toString() {
 		return String.format("%d/%d/%d", x, y, z);
