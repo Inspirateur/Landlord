@@ -10,15 +10,17 @@ commands:
   corner2:
     description: place the other corner of the zone you want to claim, corner1 and 2 are opposite corners of a cuboid
     usage: /corner2
+  cancel:
+    description: delete the corners of a zone you are building
   land:
     description: checks whether or not you're in a claimed land
     usage: /land
   protect:
     description: to add a protection to a zone you own
-    usage: /protect
+    usage: /protect (<protection>)
   unprotect:
     description: to remove a protection from your land
-    usage: /unprotect
+    usage: /unprotect (<protection>)
   add:
     description: to add a player in your land
     usage: /add <Player>

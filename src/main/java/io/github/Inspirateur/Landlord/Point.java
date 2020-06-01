@@ -11,6 +11,11 @@ public class Point implements Serializable {
 		this.z = z;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("%d/%d/%d", x, y, z);
+	}
+
 	public static Point min(Point p1, Point p2) {
 		return new Point(Math.min(p1.x, p2.x), Math.min(p1.y, p2.y), Math.min(p1.z, p2.z));
 	}

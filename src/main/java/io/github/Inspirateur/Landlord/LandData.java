@@ -12,12 +12,20 @@ public class LandData {
 	}
 
 	public Optional<Zone> getZone(UUID w, Point p) {
-		for (List<Zone> zones: this.zones.get(w).values()) {
-			for (Zone zone: zones) {
-				if(zone.contains(p)) {
-					return Optional.of(zone);
-				}
-			}
+		return zones.get(w).values().stream()
+			.flatMap(Collection::stream)
+			.filter(z -> z.contains(p)).findFirst();
+	}
+
+	public Optional<Zone> getZone(UUID w, PartialZone zone) {
+		return zones.get(w).values().stream()
+			.flatMap(Collection::stream)
+			.filter(z -> z.overlaps(zone)).findFirst();
+	}
+
+	public Optional<Zone> getZone(UUID w, UUID player, Point p) {
+		if (zones.get(w).containsKey(player)) {
+			return zones.get(w).get(player).stream().filter(z -> z.contains(p)).findFirst();
 		}
 		return Optional.empty();
 	}
@@ -31,6 +39,12 @@ public class LandData {
 		}
 		zones.get(world).get(zone.owner).add(zone);
 		this.save();
+	}
+
+	public void registerWorld(UUID world) {
+		if(!zones.containsKey(world)) {
+			zones.put(world, new HashMap<>());
+		}
 	}
 
 	private void save() {

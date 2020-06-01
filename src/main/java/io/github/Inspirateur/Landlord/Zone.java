@@ -13,6 +13,11 @@ public class Zone implements Serializable {
 	public List<UUID> guests;
 	public Map<Protections, Boolean> protecs;
 
+	public Zone(Point p1, Point p2) {
+		this.pMin = Point.min(p1, p2);
+		this.pMax = Point.max(p1, p2);
+	}
+
 	public Zone(UUID owner, Point p1, Point p2, Protections protection) {
 		this.protecs = new HashMap<>();
 		for(Protections p: Protections.values()) {
@@ -34,5 +39,9 @@ public class Zone implements Serializable {
 
 	public boolean overlaps(Zone zone) {
 		return this.contains(zone.pMin) || zone.contains(this.pMin);
+	}
+
+	public boolean overlaps(PartialZone zone) {
+		return this.overlaps(new Zone(zone.corner1, zone.corner2));
 	}
 }
