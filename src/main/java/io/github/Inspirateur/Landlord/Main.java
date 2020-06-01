@@ -10,13 +10,13 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class Main extends JavaPlugin implements Plugin, Listener {
 	private LandData landData;
 	private PlayerCache playerCache;
+	// <world, <player, partialZone>>
 	private Map<UUID, PartialZone> partialZones;
 
 	@EventHandler
@@ -29,16 +29,14 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	public void onEnable() {
 		getLogger().info("onEnable is called!");
 		landData = new LandData();
-		World world = null;
 		for(World w: getServer().getWorlds()) {
 			landData.registerWorld(w.getUID());
-			world = w;
 		}
 		playerCache = new PlayerCache();
 		partialZones = new HashMap<>();
 		Bukkit.getPluginManager().registerEvents(this, this);
 		int zoneParticlesTask = getServer().getScheduler().scheduleSyncRepeatingTask(
-			this, new ZoneParticles(partialZones, world), 0L, 20L
+			this, new ZoneParticles(partialZones), 0L, 20L
 		);
 	}
 
@@ -71,7 +69,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		return super.onCommand(sender, command, label, args);
 	}
 
-	public void corner(CommandSender sender, boolean is1) {
+	public void corner(CommandSender sender, boolean isCorner1) {
 		Player player = (Player) sender;
 		UUID pUID = player.getUniqueId();
 		if(!partialZones.containsKey(pUID)) {
@@ -83,30 +81,40 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			player.getLocation().getBlockY()-1,
 			player.getLocation().getBlockZ()
 		);
-		UUID wUID = player.getWorld().getUID();
+		World world = player.getWorld();
+		UUID wUID = world.getUID();
 		if (landData.getZone(wUID, point).isPresent()) {
 			player.sendMessage("You cannot set a new corner in an already existing zone. (/land for more info)");
 		} else {
-			if(is1) {
+			if(isCorner1) {
 				partialZone.corner1 = point;
 			} else {
 				partialZone.corner2 = point;
 			}
 			String msgCorner = "Corner %c was set to %s \nUse /corner%c to set the opposite corner of your zone";
 			if(partialZone.corner1 == null) {
+				partialZone.world = world;
 				player.sendMessage(String.format(msgCorner, '2', point.toString(), '1'));
 			} else if (partialZone.corner2 == null) {
+				partialZone.world = world;
 				player.sendMessage(String.format(msgCorner, '1', point.toString(), '2'));
 			} else {
 				Optional<Zone> overlap = landData.getZone(wUID, partialZone);
 				if(overlap.isPresent()) {
 					String ownerName = playerCache.get(overlap.get().owner);
-					if (is1) {
+					if (isCorner1) {
 						partialZone.corner1 = null;
 					} else {
 						partialZone.corner2 = null;
 					}
 					player.sendMessage("Sorry but this zone is overlaping with a zone owned by "+ownerName+", check your corners");
+				} else if(world.getUID() != wUID) {
+					if (isCorner1) {
+						partialZone.corner1 = null;
+					} else {
+						partialZone.corner2 = null;
+					}
+					player.sendMessage("LOL, no you cannot set your corners in a different world");
 				} else {
 					player.sendMessage(
 						"Your zone was succesfully defined (volume: " + new Zone(partialZone.corner1, partialZone.corner2).getVolume()
