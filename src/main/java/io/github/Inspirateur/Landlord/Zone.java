@@ -13,20 +13,23 @@ public class Zone implements Serializable {
 	public List<UUID> guests;
 	public Map<Protections, Boolean> protecs;
 
+	public Zone(PartialZone zone) {
+		this(zone.corner1, zone.corner2);
+	}
+
 	public Zone(Point p1, Point p2) {
 		this.pMin = Point.min(p1, p2);
 		this.pMax = Point.max(p1, p2);
-	}
-
-	public Zone(UUID owner, Point p1, Point p2, Protections protection) {
 		this.protecs = new HashMap<>();
 		for(Protections p: Protections.values()) {
 			this.protecs.put(p, false);
 		}
-		this.owner = owner;
-		this.pMin = Point.min(p1, p2);
-		this.pMax = Point.max(p1, p2);
+	}
+
+	public Zone(UUID owner, Point p1, Point p2, Protections protection) {
+		this(p1, p2);
 		protecs.replace(protection, true);
+		this.owner = owner;
 	}
 
 	public int getVolume() {

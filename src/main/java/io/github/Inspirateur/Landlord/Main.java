@@ -1,5 +1,7 @@
 package io.github.Inspirateur.Landlord;
 
+import jdk.nashorn.internal.runtime.regexp.joni.exception.ValueException;
+import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -10,7 +12,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -153,28 +154,22 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		}
 	}
 
-	public void protect(CommandSender sender, String[] args) {
-		Player player = (Player) sender;
+	private void protectMsg(StringBuilder msg, Player player, Protections[] protections, int volume) {
+		double amount;
+		Currencies currency;
+		for(Protections protec: protections) {
+			amount = protec.price.amount*volume;
+			currency = protec.price.currency;
+			msg.append(String.format("  - %s for %s \n", protec.toString(), currency.toString(amount)));
+		}
+	}
+
+	private Zone getOwnedZone(Player player) {
 		UUID pUID = player.getUniqueId();
 		UUID wUID = player.getWorld().getUID();
+		Zone zone;
 		if(partialZones.containsKey(pUID)) {
-			PartialZone partialZone = partialZones.get(pUID);
-			int volume = new Zone(partialZone.corner1, partialZone.corner2).getVolume();
-			if(args.length == 0) {
-				StringBuilder msg = new StringBuilder();
-				msg.append("Here are the protections you can grant your new zone:\n");
-				double amount;
-				Currencies currency;
-				for(Protections protec: Protections.values()) {
-					amount = protec.price.amount*volume;
-					currency = protec.price.currency;
-					msg.append(String.format("  - %s for %s \n", protec.toString(), currency.toString(amount)));
-				}
-				msg.append("To grant one, place the amount to pay in your hotbar and use /protect <protection>");
-				player.sendMessage(msg.toString());
-			} else {
-				player.sendMessage("This action isn't available yet, be nice with Inspi plz");
-			}
+			zone = new Zone(partialZones.get(pUID));
 		} else {
 			Point point = new Point(
 				player.getLocation().getBlockX(),
@@ -182,49 +177,61 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				player.getLocation().getBlockZ()
 			);
 			Optional<Zone> zone_opt = landData.getZone(wUID, pUID, point);
-			if (zone_opt.isPresent()) {
-				Zone zone = zone_opt.get();
-				if(args.length == 0) {
-					StringBuilder msg = new StringBuilder();
-					// make a list with the lacking protection
-					List<Protections> protecs = zone.protecs.keySet().stream().filter(p->!zone.protecs.get(p)).collect(Collectors.toList());
-					if (protecs.size() == 0) {
-						player.sendMessage("Your zone is fully protected");
-					} else {
-						msg.append("Here are the protections you can grant your zone:\n");
-						double amount;
-						Currencies currency;
-						for(Protections protec: protecs) {
-							amount = protec.price.amount*zone.getVolume();
-							currency = protec.price.currency;
-							msg.append(String.format("  - %s for %s \n", protec.toString(), currency.toString(amount)));
-						}
-						msg.append("To grant one, place the amount to pay in your hotbar and use /protect <protection>");
-						player.sendMessage(msg.toString());
-					}
+			if (!zone_opt.isPresent()) {
+				throw new ValueException("The player is not building a zone and is not standing in a zone he owns");
+			}
+			zone = zone_opt.get();
+		}
+		return zone;
+	}
+
+	public void protect(CommandSender sender, String[] args) {
+		Player player = (Player) sender;
+		try {
+			Zone zone = getOwnedZone(player);
+			if(args.length == 0) {
+				StringBuilder msg = new StringBuilder();
+				// make a list with the lacking protection
+				Protections[] protecs = (Protections[]) zone.protecs.keySet().stream().filter(p->!zone.protecs.get(p)).toArray();
+				if (protecs.length == 0) {
+					player.sendMessage("Your zone is fully protected");
 				} else {
-					player.sendMessage("This action isn't available yet, be nice with Inspi plz");
+					msg.append("Here are the protections you can grant your zone:\n");
+					protectMsg(msg, player, protecs, zone.getVolume());
+					msg.append("To grant one, place the amount to pay in your hotbar and use /protect <protection>");
+					player.sendMessage(msg.toString());
 				}
 			} else {
-				player.sendMessage("You must be in a zone you own to use /protect (/land for more info)");
+				// TODO: this step
+				player.sendMessage("This action isn't available yet, be nice with Inspi plz");
 			}
+		} catch (ValueException e) {
+			player.sendMessage("You must be in a zone you own to use /protect (/land for more info)");
 		}
 	}
 
 	public void unprotect(CommandSender sender, String[] args) {
 		Player player = (Player) sender;
-		UUID pUID = player.getUniqueId();
-		UUID wUID = player.getWorld().getUID();
-		Point point = new Point(
-			player.getLocation().getBlockX(),
-			player.getLocation().getBlockY(),
-			player.getLocation().getBlockZ()
-		);
-		Optional<Zone> zone = landData.getZone(wUID, pUID, point);
-		if (zone.isPresent()) {
-			player.sendMessage("WIP");
-		} else {
-			player.sendMessage("You must be in a zone you own to use /protect (/land for more info)");
+		try {
+			Zone zone = getOwnedZone(player);
+			if(args.length == 0) {
+				StringBuilder msg = new StringBuilder();
+				// make a list with the lacking protection
+				Protections[] protecs = (Protections[]) zone.protecs.keySet().stream().filter(p->zone.protecs.get(p)).toArray();
+				if (protecs.length == 0) {
+					player.sendMessage("Your zone has no protection yet");
+				} else {
+					msg.append("Here are the protections you can remove from your zone:\n");
+					protectMsg(msg, player, protecs, zone.getVolume());
+					msg.append("To remove one, use /unprotect <protection>, you will be refunded by the amount displayed");
+					player.sendMessage(msg.toString());
+				}
+			} else {
+				// TODO: this step
+				player.sendMessage("This action isn't available yet, be nice with Inspi plz");
+			}
+		} catch (ValueException e) {
+			player.sendMessage("You must be in a zone you own to use /unprotect (/land for more info)");
 		}
 	}
 
