@@ -61,15 +61,18 @@ public class LandData {
 
 	private void load() {
 		this.zones = new HashMap<>();
-		try {
-			FileInputStream fileIn = new FileInputStream("plugins/Landlord/land_data.ser");
-			ObjectInputStream in = new ObjectInputStream(fileIn);
-			//noinspection unchecked
-			this.zones = (Map<UUID, Map<UUID, List<Zone>>>) in.readObject();
-			in.close();
-			fileIn.close();
-		} catch (IOException | ClassNotFoundException i) {
-			i.printStackTrace();
+		if(new File("plugins/Landlord/land_data.ser").isFile()) {
+			try {
+				FileInputStream fileIn = new FileInputStream("plugins/Landlord/land_data.ser");
+				ObjectInputStream in = new ObjectInputStream(fileIn);
+				//noinspection unchecked
+				this.zones = (Map<UUID, Map<UUID, List<Zone>>>) in.readObject();
+				in.close();
+				fileIn.close();
+			} catch (IOException | ClassNotFoundException i) {
+				i.printStackTrace();
+			}
+		} else {
 			this.save();
 		}
 	}

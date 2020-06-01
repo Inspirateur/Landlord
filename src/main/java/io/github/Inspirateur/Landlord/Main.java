@@ -1,7 +1,5 @@
 package io.github.Inspirateur.Landlord;
 
-import jdk.nashorn.internal.runtime.regexp.joni.exception.ValueException;
-import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -17,14 +15,13 @@ import java.util.stream.Collectors;
 
 public class Main extends JavaPlugin implements Plugin, Listener {
 	private LandData landData;
-	// TODO: save and load this on a file
-	private Map<UUID, String> playerNames;
+	private PlayerCache playerCache;
 	private Map<UUID, PartialZone> partialZones;
 
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		Player player = event.getPlayer();
-		playerNames.put(player.getUniqueId(), player.getName());
+		playerCache.update(player);
 	}
 
 	@Override
@@ -34,7 +31,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		for(World world: getServer().getWorlds()) {
 			landData.registerWorld(world.getUID());
 		}
-		playerNames = new HashMap<>();
+		playerCache = new PlayerCache();
 		partialZones = new HashMap<>();
 		Bukkit.getPluginManager().registerEvents(this, this);
 	}
@@ -61,9 +58,9 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				unprotect(sender, args);
 				break;
 			case "add":
-				add(sender, args);
+				addOrRemove(sender, true, args);
 			case "remove":
-				remove(sender, args);
+				addOrRemove(sender, false, args);
 		}
 		return super.onCommand(sender, command, label, args);
 	}
@@ -97,7 +94,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			} else {
 				Optional<Zone> overlap = landData.getZone(wUID, partialZone);
 				if(overlap.isPresent()) {
-					String ownerName = playerNames.get(overlap.get().owner);
+					String ownerName = playerCache.get(overlap.get().owner);
 					if (is1) {
 						partialZone.corner1 = null;
 					} else {
@@ -137,10 +134,10 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		if (zoneOpt.isPresent()) {
 			Zone zone = zoneOpt.get();
 			StringBuilder msg = new StringBuilder();
-			msg.append("Zone Owner: ").append(playerNames.get(zone.owner)).append("\n");
+			msg.append("Zone Owner: ").append(playerCache.get(zone.owner)).append("\n");
 			if (zone.guests.size() > 0) {
 				msg.append("Guests: ").append(
-					zone.guests.stream().map(g->playerNames.get(g)).collect(Collectors.joining(", "))
+					zone.guests.stream().map(g->playerCache.get(g)).collect(Collectors.joining(", "))
 				).append("\n");
 			}
 			msg.append("Protections: ").append(
@@ -154,7 +151,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		}
 	}
 
-	private void protectMsg(StringBuilder msg, Player player, Protections[] protections, int volume) {
+	private void protectMsg(StringBuilder msg, Protections[] protections, int volume) {
 		double amount;
 		Currencies currency;
 		for(Protections protec: protections) {
@@ -178,7 +175,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			);
 			Optional<Zone> zone_opt = landData.getZone(wUID, pUID, point);
 			if (!zone_opt.isPresent()) {
-				throw new ValueException("The player is not building a zone and is not standing in a zone he owns");
+				throw new NotInOwnZoneException();
 			}
 			zone = zone_opt.get();
 		}
@@ -197,7 +194,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 					player.sendMessage("Your zone is fully protected");
 				} else {
 					msg.append("Here are the protections you can grant your zone:\n");
-					protectMsg(msg, player, protecs, zone.getVolume());
+					protectMsg(msg, protecs, zone.getVolume());
 					msg.append("To grant one, place the amount to pay in your hotbar and use /protect <protection>");
 					player.sendMessage(msg.toString());
 				}
@@ -205,7 +202,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				// TODO: this step
 				player.sendMessage("This action isn't available yet, be nice with Inspi plz");
 			}
-		} catch (ValueException e) {
+		} catch (NotInOwnZoneException e) {
 			player.sendMessage("You must be in a zone you own to use /protect (/land for more info)");
 		}
 	}
@@ -222,7 +219,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 					player.sendMessage("Your zone has no protection yet");
 				} else {
 					msg.append("Here are the protections you can remove from your zone:\n");
-					protectMsg(msg, player, protecs, zone.getVolume());
+					protectMsg(msg, protecs, zone.getVolume());
 					msg.append("To remove one, use /unprotect <protection>, you will be refunded by the amount displayed");
 					player.sendMessage(msg.toString());
 				}
@@ -230,14 +227,46 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				// TODO: this step
 				player.sendMessage("This action isn't available yet, be nice with Inspi plz");
 			}
-		} catch (ValueException e) {
+		} catch (NotInOwnZoneException e) {
 			player.sendMessage("You must be in a zone you own to use /unprotect (/land for more info)");
 		}
 	}
 
-	public void add(CommandSender sender, String[] args) {
-	}
-
-	public void remove(CommandSender sender, String[] args) {
+	public void addOrRemove(CommandSender sender, boolean isAdd, String[] args) {
+		Player player = (Player) sender;
+		String cmd = isAdd? "add" : "remove";
+		try {
+			Zone zone = getOwnedZone(player);
+			if(zone.owner != null) {
+				if (args.length > 0) {
+					for(String pName: args) {
+						if(playerCache.contains(pName)) {
+							UUID pUID = playerCache.get(pName);
+							if(isAdd) {
+								zone.guests.add(pUID);
+								player.sendMessage("Player "+pName+" was added to your zone");
+							} else {
+								zone.guests.remove(pUID);
+								player.sendMessage("Player "+pName+" was removed from your zone");
+							}
+						} else {
+							player.sendMessage("Sorry I don't know any "+pName);
+						}
+					}
+				} else {
+					player.sendMessage(String.format("Usage: /%s <Player>", cmd));
+				}
+			} else {
+				player.sendMessage(String.format(
+					"Your zone is not registered yet, grant it one protection before using /%s (/protect for more info)",
+					cmd
+				));
+			}
+		} catch (NotInOwnZoneException e) {
+			player.sendMessage(String.format(
+				"You need to be in a zone you own to use /%s <Player> (/land for more info)",
+				cmd
+			));
+		}
 	}
 }

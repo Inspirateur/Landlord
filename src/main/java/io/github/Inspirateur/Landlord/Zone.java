@@ -1,16 +1,13 @@
 package io.github.Inspirateur.Landlord;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class Zone implements Serializable {
 	public Point pMin;
 	public Point pMax;
 	public UUID owner;
-	public List<UUID> guests;
+	public Set<UUID> guests;
 	public Map<Protections, Boolean> protecs;
 
 	public Zone(PartialZone zone) {
@@ -24,6 +21,7 @@ public class Zone implements Serializable {
 		for(Protections p: Protections.values()) {
 			this.protecs.put(p, false);
 		}
+		this.guests = new HashSet<>();
 	}
 
 	public Zone(UUID owner, Point p1, Point p2, Protections protection) {
