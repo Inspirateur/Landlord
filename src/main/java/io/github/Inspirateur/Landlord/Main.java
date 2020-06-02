@@ -222,17 +222,21 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 						} else {
 							try {
 								int amount = (int)(zone.getVolume()*protection.price.amount);
-								protection.price.currency.pay(player, amount);
-								zone.protecs.put(protection, true);
-								player.sendMessage("Your zone was succesfully protected from " + protectionName);
-								// checks if it was an unregistered zone
-								if(zone.owner == null) {
-									UUID pUID = player.getUniqueId();
-									World world = partialZones.get(pUID).world;
-									partialZones.remove(pUID);
-									zone.owner = pUID;
-									landData.addZone(world.getUID(), zone);
-									player.sendMessage("New zone registered");
+								if(amount == 0) {
+									player.sendMessage("This zone is too small sorry");
+								} else {
+									protection.price.currency.pay(player, amount);
+									zone.protecs.put(protection, true);
+									player.sendMessage("Your zone was succesfully protected from " + protectionName);
+									// checks if it was an unregistered zone
+									if(zone.owner == null) {
+										UUID pUID = player.getUniqueId();
+										World world = partialZones.get(pUID).world;
+										partialZones.remove(pUID);
+										zone.owner = pUID;
+										landData.addZone(world.getUID(), zone);
+										player.sendMessage("New zone registered");
+									}
 								}
 							} catch (NotEnoughMoneyException e) {
 								player.sendMessage("You don't have enough money (/protect for more info)");
