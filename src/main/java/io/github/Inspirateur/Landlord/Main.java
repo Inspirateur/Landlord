@@ -10,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,7 +30,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	public void onEnable() {
 		getLogger().info("onEnable is called!");
 		landData = new LandData();
-		for(World w: getServer().getWorlds()) {
+		for (World w : getServer().getWorlds()) {
 			landData.registerWorld(w.getUID());
 		}
 		playerCache = new PlayerCache();
@@ -72,13 +73,13 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	public void corner(CommandSender sender, boolean isCorner1) {
 		Player player = (Player) sender;
 		UUID pUID = player.getUniqueId();
-		if(!partialZones.containsKey(pUID)) {
+		if (!partialZones.containsKey(pUID)) {
 			partialZones.put(pUID, new PartialZone());
 		}
 		PartialZone partialZone = partialZones.get(pUID);
 		Point point = new Point(
 			player.getLocation().getBlockX(),
-			player.getLocation().getBlockY()-1,
+			player.getLocation().getBlockY() - 1,
 			player.getLocation().getBlockZ()
 		);
 		World world = player.getWorld();
@@ -86,13 +87,13 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		if (landData.getZone(wUID, point).isPresent()) {
 			player.sendMessage("You cannot set a new corner in an already existing zone. (/land for more info)");
 		} else {
-			if(isCorner1) {
+			if (isCorner1) {
 				partialZone.corner1 = point;
 			} else {
 				partialZone.corner2 = point;
 			}
 			String msgCorner = "Corner %c was set to %s \nUse /corner%c to set the opposite corner of your zone";
-			if(partialZone.corner1 == null) {
+			if (partialZone.corner1 == null) {
 				partialZone.world = world;
 				player.sendMessage(String.format(msgCorner, '2', point.toString(), '1'));
 			} else if (partialZone.corner2 == null) {
@@ -100,15 +101,15 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				player.sendMessage(String.format(msgCorner, '1', point.toString(), '2'));
 			} else {
 				Optional<Zone> overlap = landData.getZone(wUID, partialZone);
-				if(overlap.isPresent()) {
+				if (overlap.isPresent()) {
 					String ownerName = playerCache.get(overlap.get().owner);
 					if (isCorner1) {
 						partialZone.corner1 = null;
 					} else {
 						partialZone.corner2 = null;
 					}
-					player.sendMessage("Sorry but this zone is overlaping with a zone owned by "+ownerName+", check your corners");
-				} else if(world.getUID() != wUID) {
+					player.sendMessage("Sorry but this zone is overlaping with a zone owned by " + ownerName + ", check your corners");
+				} else if (world.getUID() != wUID) {
 					if (isCorner1) {
 						partialZone.corner1 = null;
 					} else {
@@ -118,7 +119,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				} else {
 					player.sendMessage(
 						"Your zone was succesfully defined (volume: " + new Zone(partialZone.corner1, partialZone.corner2).getVolume()
-						+ ") ! Use /protect to grant it a protection and register it for good"
+							+ ") ! Use /protect to grant it a protection and register it for good"
 					);
 				}
 			}
@@ -128,7 +129,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	public void cancel(CommandSender sender) {
 		Player player = (Player) sender;
 		UUID pUID = player.getUniqueId();
-		if(partialZones.containsKey(pUID)) {
+		if (partialZones.containsKey(pUID)) {
 			partialZones.remove(pUID);
 			player.sendMessage("Succesfully deleted your corners");
 		} else {
@@ -139,9 +140,9 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	public void land(CommandSender sender) {
 		Player player = (Player) sender;
 		Point point = new Point(
-				player.getLocation().getBlockX(),
-				player.getLocation().getBlockY(),
-				player.getLocation().getBlockZ()
+			player.getLocation().getBlockX(),
+			player.getLocation().getBlockY(),
+			player.getLocation().getBlockZ()
 		);
 		UUID wUID = player.getWorld().getUID();
 		Optional<Zone> zoneOpt = this.landData.getZone(wUID, point);
@@ -151,12 +152,12 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			msg.append("Zone Owner: ").append(playerCache.get(zone.owner)).append("\n");
 			if (zone.guests.size() > 0) {
 				msg.append("Guests: ").append(
-					zone.guests.stream().map(g->playerCache.get(g)).collect(Collectors.joining(", "))
+					zone.guests.stream().map(g -> playerCache.get(g)).collect(Collectors.joining(", "))
 				).append("\n");
 			}
 			msg.append("Protections: ").append(
 				zone.protecs.entrySet().stream().filter(Map.Entry::getValue)
-					.map(p->p.getKey().toString()).collect(Collectors.joining(", "))
+					.map(p -> p.getKey().toString()).collect(Collectors.joining(", "))
 			).append("\n");
 			msg.append("Volume: ").append(zone.getVolume()).append("\n");
 			player.sendMessage(msg.toString());
@@ -168,8 +169,8 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	private void protectMsg(StringBuilder msg, Protections[] protections, int volume) {
 		double amount;
 		Currencies currency;
-		for(Protections protec: protections) {
-			amount = protec.price.amount*volume;
+		for (Protections protec : protections) {
+			amount = protec.price.amount * volume;
 			currency = protec.price.currency;
 			msg.append(String.format("  - %s for %s \n", protec.toString(), currency.toString(amount)));
 		}
@@ -179,7 +180,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		UUID pUID = player.getUniqueId();
 		UUID wUID = player.getWorld().getUID();
 		Zone zone;
-		if(partialZones.containsKey(pUID)) {
+		if (partialZones.containsKey(pUID)) {
 			zone = new Zone(partialZones.get(pUID));
 		} else {
 			Point point = new Point(
@@ -200,10 +201,10 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		Player player = (Player) sender;
 		try {
 			Zone zone = getOwnedZone(player);
-			if(args.length == 0) {
+			if (args.length == 0) {
 				StringBuilder msg = new StringBuilder();
 				// make a list with the lacking protection
-				Protections[] protecs = (Protections[]) zone.protecs.keySet().stream().filter(p->!zone.protecs.get(p)).toArray();
+				Protections[] protecs = (Protections[]) zone.protecs.keySet().stream().filter(p -> !zone.protecs.get(p)).toArray();
 				if (protecs.length == 0) {
 					player.sendMessage("Your zone is fully protected");
 				} else {
@@ -213,8 +214,34 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 					player.sendMessage(msg.toString());
 				}
 			} else {
-				// TODO: this step
-				player.sendMessage("This action isn't available yet, be nice with Inspi plz");
+				for (String protectionName : args) {
+					try {
+						Protections protection = Protections.valueOf(protectionName);
+						if(zone.protecs.get(protection)) {
+							player.sendMessage("This zone already has " + protectionName + " protection");
+						} else {
+							try {
+								int amount = (int)(zone.getVolume()*protection.price.amount);
+								protection.price.currency.pay(player, amount);
+								zone.protecs.put(protection, true);
+								player.sendMessage("Your zone was succesfully protected from " + protectionName);
+								// checks if it was an unregistered zone
+								if(zone.owner == null) {
+									UUID pUID = player.getUniqueId();
+									World world = partialZones.get(pUID).world;
+									partialZones.remove(pUID);
+									zone.owner = pUID;
+									landData.addZone(world.getUID(), zone);
+									player.sendMessage("New zone registered");
+								}
+							} catch (NotEnoughMoneyException e) {
+								player.sendMessage("You don't have enough money (/protect for more info)");
+							}
+						}
+					} catch (RuntimeException e) {
+						player.sendMessage("Protection " + protectionName + " does not exist");
+					}
+				}
 			}
 		} catch (NotInOwnZoneException e) {
 			player.sendMessage("You must be in a zone you own to use /protect (/land for more info)");
@@ -225,10 +252,10 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		Player player = (Player) sender;
 		try {
 			Zone zone = getOwnedZone(player);
-			if(args.length == 0) {
+			if (args.length == 0) {
 				StringBuilder msg = new StringBuilder();
 				// make a list with the lacking protection
-				Protections[] protecs = (Protections[]) zone.protecs.keySet().stream().filter(p->zone.protecs.get(p)).toArray();
+				Protections[] protecs = (Protections[]) zone.protecs.keySet().stream().filter(p -> zone.protecs.get(p)).toArray();
 				if (protecs.length == 0) {
 					player.sendMessage("Your zone has no protection yet");
 				} else {
@@ -238,7 +265,30 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 					player.sendMessage(msg.toString());
 				}
 			} else {
-				// TODO: this step
+				for (String protectionName : args) {
+					try {
+						Protections protection = Protections.valueOf(protectionName);
+						if(!zone.protecs.get(protection)) {
+							player.sendMessage("This zone doesn't have " + protectionName + " protection");
+						} else {
+							try {
+								int amount = (int)(zone.getVolume()*protection.price.amount);
+								protection.price.currency.give(player, amount);
+								zone.protecs.put(protection, false);
+								player.sendMessage("Protection " + protectionName + " was succesfully removed from your zonw");
+								// checks if there is any protection left
+								if(zone.protecs.values().stream().filter(v->v).toArray().length == 0) {
+									landData.removeZone(player.getWorld().getUID(), player.getUniqueId(), zone);
+									player.sendMessage("Since this zone has no protection left it was deleted");
+								}
+							} catch (InventoryFullException e) {
+								player.sendMessage("Your inventory is full, make some room and try again");
+							}
+						}
+					} catch (RuntimeException e) {
+						player.sendMessage("Protection " + protectionName + " does not exist");
+					}
+				}
 				player.sendMessage("This action isn't available yet, be nice with Inspi plz");
 			}
 		} catch (NotInOwnZoneException e) {
@@ -248,23 +298,23 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 
 	public void addOrRemove(CommandSender sender, boolean isAdd, String[] args) {
 		Player player = (Player) sender;
-		String cmd = isAdd? "add" : "remove";
+		String cmd = isAdd ? "add" : "remove";
 		try {
 			Zone zone = getOwnedZone(player);
-			if(zone.owner != null) {
+			if (zone.owner != null) {
 				if (args.length > 0) {
-					for(String pName: args) {
-						if(playerCache.contains(pName)) {
+					for (String pName : args) {
+						if (playerCache.contains(pName)) {
 							UUID pUID = playerCache.get(pName);
-							if(isAdd) {
+							if (isAdd) {
 								zone.guests.add(pUID);
-								player.sendMessage("Player "+pName+" was added to your zone");
+								player.sendMessage("Player " + pName + " was added to your zone");
 							} else {
 								zone.guests.remove(pUID);
-								player.sendMessage("Player "+pName+" was removed from your zone");
+								player.sendMessage("Player " + pName + " was removed from your zone");
 							}
 						} else {
-							player.sendMessage("Sorry I don't know any "+pName);
+							player.sendMessage("Sorry I don't know any " + pName);
 						}
 					}
 				} else {

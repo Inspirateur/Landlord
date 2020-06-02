@@ -41,6 +41,10 @@ public class LandData {
 		this.save();
 	}
 
+	public void removeZone(UUID world, UUID player, Zone zone) {
+		zones.get(world).get(player).remove(zone);
+	}
+
 	public void registerWorld(UUID world) {
 		if(!zones.containsKey(world)) {
 			zones.put(world, new HashMap<>());
