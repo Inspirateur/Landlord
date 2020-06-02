@@ -36,7 +36,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		partialZones = new HashMap<>();
 		Bukkit.getPluginManager().registerEvents(this, this);
 		int zoneParticlesTask = getServer().getScheduler().scheduleSyncRepeatingTask(
-			this, new ZoneParticles(partialZones), 0L, 20L
+			this, new ZoneParticles(partialZones), 0L, 15L
 		);
 	}
 
@@ -73,7 +73,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				addOrRemove(sender, false, args);
 				break;
 		}
-		return super.onCommand(sender, command, label, args);
+		return true;
 	}
 
 	public void corner(CommandSender sender, boolean isCorner1) {
@@ -290,7 +290,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 									player.sendMessage("Since this zone has no protection left it was deleted");
 								}
 							} catch (InventoryFullException e) {
-								player.sendMessage("Your inventory is full, make some room and try again");
+								player.sendMessage("You don't have enough space in your inventory, make some room and try again");
 							}
 						}
 					} catch (RuntimeException e) {

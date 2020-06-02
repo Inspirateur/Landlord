@@ -39,7 +39,7 @@ public class ZoneParticles implements Runnable {
 					double len = (pMax.get(i)-pMin.get(i))/2.;
 					double c = pMin.get(i)+len;
 					offset = new double[]{0., 0., 0.};
-					offset[i] = len/2;
+					offset[i] = len/3;
 					for(int j=0; j<=1; j++) {
 						for(int k=0; k<=1; k++) {
 							center = new double[]{(double)pMin.x, (double)pMin.y, (double)pMin.z};
@@ -48,11 +48,16 @@ public class ZoneParticles implements Runnable {
 							center[ids[i][1]] += (pMax.get(ids[i][1])-pMin.get(ids[i][1]))*k;
 							zone.world.spawnParticle(
 								Particle.FLAME, center[0], center[1], center[2],
-								(int)len*8, offset[0], offset[1], offset[2], 0.
+								(int)len*12, offset[0], offset[1], offset[2], 0.
 							);
 						}
 					}
 				}
+			} else {
+				// we Know one corner is defined
+				Point p = zone.corner1 == null? zone.corner2 : zone.corner1;
+				zone.world.spawnParticle(Particle.SPELL_INSTANT, p.x, p.y, p.z,
+					24, 0, 0, 0, 0.);
 			}
 		}
 	}
