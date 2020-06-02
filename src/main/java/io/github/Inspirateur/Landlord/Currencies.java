@@ -54,8 +54,9 @@ enum Currencies {
 		for(Integer i : indices) {
 			player.getInventory().setItem(i, null);
 		}
-		amountTemp *= -1;
-		give(player, amountTemp);
+		if (amountTemp < 0) {
+			give(player, amountTemp*-1);
+		}
 	}
 
 	public void give(Player player, int amount) throws InventoryFullException {
@@ -65,16 +66,16 @@ enum Currencies {
 		while (amountTemp > 0) {
 			// choose wether to pay with blocks or items
 			if(amountTemp % multiplier == 0 || amountTemp > item.getMaxStackSize()) {
-				n = Math.max(amountTemp/multiplier, block.getMaxStackSize());
+				n = Math.min(amountTemp/multiplier, block.getMaxStackSize());
 				toGive.add(new ItemStack(block, n));
 				amountTemp -= n*multiplier;
 			} else {
-				n = Math.max(amountTemp, item.getMaxStackSize());
+				n = Math.min(amountTemp, item.getMaxStackSize());
 				toGive.add(new ItemStack(item, n));
 				amountTemp -= n;
 			}
 		}
-		assert toGive.size() > 0;
+		// assert toGive.size() > 0;
 		List<Integer> indices = new ArrayList<>();
 		for(int i = 0; i < player.getInventory().getSize(); i++){
 			ItemStack pItem = player.getInventory().getItem(i);
@@ -89,8 +90,8 @@ enum Currencies {
 		if(indices.size() < toGive.size()) {
 			throw new InventoryFullException();
 		}
-		for(Integer i : indices) {
-			player.getInventory().setItem(i, toGive.get(i));
+		for(int i=0; i<indices.size(); i++) {
+			player.getInventory().setItem(indices.get(i), toGive.get(i));
 		}
 	}
 

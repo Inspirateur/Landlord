@@ -51,7 +51,7 @@ public class LandData {
 		}
 	}
 
-	private void save() {
+	public void save() {
 		try {
 			FileOutputStream fileOut = new FileOutputStream("plugins/Landlord/land_data.ser");
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);

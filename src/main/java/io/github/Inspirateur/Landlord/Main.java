@@ -10,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -42,6 +41,11 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	}
 
 	@Override
+	public void onDisable() {
+		landData.save();
+	}
+
+	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 		switch (label) {
 			case "corner1":
@@ -64,8 +68,10 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				break;
 			case "add":
 				addOrRemove(sender, true, args);
+				break;
 			case "remove":
 				addOrRemove(sender, false, args);
+				break;
 		}
 		return super.onCommand(sender, command, label, args);
 	}
@@ -166,11 +172,11 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		}
 	}
 
-	private void protectMsg(StringBuilder msg, Protections[] protections, int volume) {
+	private void protectMsg(StringBuilder msg, List<Protections> protections, int volume) {
 		double amount;
 		Currencies currency;
 		for (Protections protec : protections) {
-			amount = protec.price.amount * volume;
+			amount = Math.max(protec.price.amount * volume, 1);
 			currency = protec.price.currency;
 			msg.append(String.format("  - %s for %s \n", protec.toString(), currency.toString(amount)));
 		}
@@ -203,9 +209,9 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			Zone zone = getOwnedZone(player);
 			if (args.length == 0) {
 				StringBuilder msg = new StringBuilder();
-				// make a list with the lacking protection
-				Protections[] protecs = (Protections[]) zone.protecs.keySet().stream().filter(p -> !zone.protecs.get(p)).toArray();
-				if (protecs.length == 0) {
+				// make a list with the lacking protections
+				List<Protections> protecs = zone.protecs.keySet().stream().filter(p -> !zone.protecs.get(p)).collect(Collectors.toList());
+				if (protecs.size() == 0) {
 					player.sendMessage("Your zone is fully protected");
 				} else {
 					msg.append("Here are the protections you can grant your zone:\n");
@@ -215,35 +221,33 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				}
 			} else {
 				for (String protectionName : args) {
+					Protections protection;
 					try {
-						Protections protection = Protections.valueOf(protectionName);
-						if(zone.protecs.get(protection)) {
-							player.sendMessage("This zone already has " + protectionName + " protection");
-						} else {
-							try {
-								int amount = (int)(zone.getVolume()*protection.price.amount);
-								if(amount == 0) {
-									player.sendMessage("This zone is too small sorry");
-								} else {
-									protection.price.currency.pay(player, amount);
-									zone.protecs.put(protection, true);
-									player.sendMessage("Your zone was succesfully protected from " + protectionName);
-									// checks if it was an unregistered zone
-									if(zone.owner == null) {
-										UUID pUID = player.getUniqueId();
-										World world = partialZones.get(pUID).world;
-										partialZones.remove(pUID);
-										zone.owner = pUID;
-										landData.addZone(world.getUID(), zone);
-										player.sendMessage("New zone registered");
-									}
-								}
-							} catch (NotEnoughMoneyException e) {
-								player.sendMessage("You don't have enough money (/protect for more info)");
-							}
-						}
+						protection = Protections.valueOf(protectionName);
 					} catch (RuntimeException e) {
 						player.sendMessage("Protection " + protectionName + " does not exist");
+						return;
+					}
+					if(zone.protecs.get(protection)) {
+						player.sendMessage("This zone already has " + protectionName + " protection");
+					} else {
+						try {
+							int amount = Math.max((int)(zone.getVolume()*protection.price.amount), 1);
+							protection.price.currency.pay(player, amount);
+							zone.protecs.put(protection, true);
+							player.sendMessage("Your zone was succesfully protected from " + protectionName);
+							// checks if it was an unregistered zone
+							if(zone.owner == null) {
+								UUID pUID = player.getUniqueId();
+								World world = partialZones.get(pUID).world;
+								partialZones.remove(pUID);
+								zone.owner = pUID;
+								landData.addZone(world.getUID(), zone);
+								player.sendMessage("New zone registered");
+							}
+						} catch (NotEnoughMoneyException e) {
+							player.sendMessage("You don't have enough money (/protect for more info)");
+						}
 					}
 				}
 			}
@@ -259,8 +263,8 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			if (args.length == 0) {
 				StringBuilder msg = new StringBuilder();
 				// make a list with the lacking protection
-				Protections[] protecs = (Protections[]) zone.protecs.keySet().stream().filter(p -> zone.protecs.get(p)).toArray();
-				if (protecs.length == 0) {
+				List<Protections> protecs = zone.protecs.keySet().stream().filter(p -> zone.protecs.get(p)).collect(Collectors.toList());
+				if (protecs.size() == 0) {
 					player.sendMessage("Your zone has no protection yet");
 				} else {
 					msg.append("Here are the protections you can remove from your zone:\n");
@@ -276,7 +280,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 							player.sendMessage("This zone doesn't have " + protectionName + " protection");
 						} else {
 							try {
-								int amount = (int)(zone.getVolume()*protection.price.amount);
+								int amount = Math.max((int)(zone.getVolume()*protection.price.amount), 1);
 								protection.price.currency.give(player, amount);
 								zone.protecs.put(protection, false);
 								player.sendMessage("Protection " + protectionName + " was succesfully removed from your zonw");
@@ -293,7 +297,6 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 						player.sendMessage("Protection " + protectionName + " does not exist");
 					}
 				}
-				player.sendMessage("This action isn't available yet, be nice with Inspi plz");
 			}
 		} catch (NotInOwnZoneException e) {
 			player.sendMessage("You must be in a zone you own to use /unprotect (/land for more info)");
@@ -308,7 +311,13 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			if (zone.owner != null) {
 				if (args.length > 0) {
 					for (String pName : args) {
-						if (playerCache.contains(pName)) {
+						if (player.getName().equals(pName)) {
+							if(isAdd) {
+								player.sendMessage("You cannot add yourself to your zone");
+							} else {
+								player.sendMessage("You cannot remove yourself from your zone");
+							}
+						} else if (playerCache.contains(pName)) {
 							UUID pUID = playerCache.get(pName);
 							if (isAdd) {
 								zone.guests.add(pUID);
