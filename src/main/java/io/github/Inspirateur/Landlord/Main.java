@@ -4,12 +4,20 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockCanBuildEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.projectiles.ProjectileSource;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -18,12 +26,6 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	private PlayerCache playerCache;
 	// <world, <player, partialZone>>
 	private Map<UUID, PartialZone> partialZones;
-
-	@EventHandler
-	public void onPlayerJoin(PlayerJoinEvent event) {
-		Player player = event.getPlayer();
-		playerCache.update(player);
-	}
 
 	@Override
 	public void onEnable() {
@@ -45,8 +47,89 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		landData.save();
 	}
 
+	@EventHandler
+	public void onPlayerJoin(PlayerJoinEvent event) {
+		Player player = event.getPlayer();
+		playerCache.update(player);
+	}
+
+	@EventHandler
+	public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+		if (event.getEntity() instanceof Player) {
+			if (
+				(event.getDamager() instanceof Projectile && ((Projectile)event.getDamager()).getShooter() instanceof Player) ||
+				event.getDamager() instanceof Player
+			) {
+				Player player = (Player) event.getEntity();
+				UUID wUID = player.getWorld().getUID();
+				Point point = new Point(
+					player.getLocation().getBlockX(),
+					player.getLocation().getBlockY(),
+					player.getLocation().getBlockZ()
+				);
+				Optional<Zone> zone = landData.getZone(wUID, point);
+				if(zone.isPresent() && zone.get().protecs.get(Protections.PVP)) {
+					event.setCancelled(true);
+				}
+			}
+		}
+	}
+
+	@EventHandler
+	public void onBlockPlace(BlockPlaceEvent event) {
+		Player player = event.getPlayer();
+		UUID wUID = player.getWorld().getUID();
+		Point point = new Point(
+			event.getBlock().getLocation().getBlockX(),
+			event.getBlock().getLocation().getBlockY(),
+			event.getBlock().getLocation().getBlockZ()
+		);
+		Optional<Zone> zoneOpt = landData.getZone(wUID, point);
+		if(zoneOpt.isPresent()) {
+			Zone zone = zoneOpt.get();
+			UUID pUID = player.getUniqueId();
+			if(zone.protecs.get(Protections.playerGrief) && !zone.owner.equals(pUID) && !zone.guests.contains(pUID)) {
+				event.setCancelled(true);
+			}
+		}
+	}
+
+	@EventHandler
+	public void onBlockBreak(BlockBreakEvent event) {
+		Player player = event.getPlayer();
+		UUID wUID = player.getWorld().getUID();
+		Point point = new Point(
+			event.getBlock().getLocation().getBlockX(),
+			event.getBlock().getLocation().getBlockY(),
+			event.getBlock().getLocation().getBlockZ()
+		);
+		Optional<Zone> zone_opt = landData.getZone(wUID, point);
+		if(zone_opt.isPresent()) {
+			Zone zone = zone_opt.get();
+			UUID pUID = player.getUniqueId();
+			if(zone.protecs.get(Protections.playerGrief) && !zone.owner.equals(pUID) && !zone.guests.contains(pUID)) {
+				event.setCancelled(true);
+			}
+		}
+	}
+
+	@EventHandler
+	public void onEntityExplode(EntityExplodeEvent e) {
+		Entity entity = e.getEntity();
+		Point point = new Point(
+			entity.getLocation().getBlockX(),
+			entity.getLocation().getBlockY(),
+			entity.getLocation().getBlockZ()
+		);
+		UUID wUID = entity.getWorld().getUID();
+		Optional<Zone> zoneOpt = landData.getZone(wUID, point);
+		if (zoneOpt.isPresent() && zoneOpt.get().protecs.get(Protections.mobGrief)) {
+			e.blockList().clear();
+		}
+	}
+
 	@Override
-	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+	public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, String label, String[] args) {
 		switch (label) {
 			case "corner1":
 				corner(sender, true);
