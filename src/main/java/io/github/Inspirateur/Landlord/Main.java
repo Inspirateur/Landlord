@@ -3,12 +3,12 @@ package io.github.Inspirateur.Landlord;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Openable;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.*;
-import org.bukkit.event.Cancellable;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -16,7 +16,6 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.material.Openable;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -39,7 +38,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		playerCache = new PlayerCache();
 		partialZones = new HashMap<>();
 		Bukkit.getPluginManager().registerEvents(this, this);
-		int zoneParticlesTask = getServer().getScheduler().scheduleSyncRepeatingTask(
+		getServer().getScheduler().scheduleSyncRepeatingTask(
 			this, new ZoneParticles(partialZones), 0L, 15L
 		);
 	}
@@ -77,12 +76,18 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		}
 	}
 
+	private boolean isDoorOrChest(@NotNull Block block) {
+		return block.getState() instanceof InventoryHolder
+			|| block.getBlockData() instanceof Openable;
+	}
+
 	@EventHandler
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		Player player = event.getPlayer();
 		Block block = event.getClickedBlock();
 		if(block != null) {
-			if(!(block instanceof InventoryHolder) && !(block instanceof Openable)) {
+			System.out.println(block);
+			if(!isDoorOrChest(block)) {
 				UUID wUID = block.getWorld().getUID();
 				Point point = new Point(block.getX(), block.getY(), block.getZ());
 				Optional<Zone> zoneOpt = landData.getZone(wUID, point);

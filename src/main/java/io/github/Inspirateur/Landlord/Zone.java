@@ -24,12 +24,6 @@ public class Zone implements Serializable {
 		this.guests = new HashSet<>();
 	}
 
-	public Zone(UUID owner, Point p1, Point p2, Protections protection) {
-		this(p1, p2);
-		protecs.replace(protection, true);
-		this.owner = owner;
-	}
-
 	public int getVolume() {
 		return (this.pMax.x-this.pMin.x)*(this.pMax.y-this.pMin.y)*(this.pMax.z-this.pMin.z);
 	}

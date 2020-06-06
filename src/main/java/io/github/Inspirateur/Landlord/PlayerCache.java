@@ -33,10 +33,6 @@ public class PlayerCache {
 		return playerUID.containsKey(pName);
 	}
 
-	public boolean contains(UUID pUID) {
-		return playerNames.containsKey(pUID);
-	}
-
 	private void save() {
 		try {
 			FileOutputStream fileOut = new FileOutputStream("plugins/Landlord/player_names.ser");
