@@ -1,16 +1,15 @@
 package io.github.Inspirateur.Landlord;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
 enum Currencies {
 	iron(Material.IRON_INGOT, Material.IRON_BLOCK),
 	gold(Material.GOLD_INGOT, Material.GOLD_BLOCK),
-	emerald(Material.EMERALD, Material.EMERALD_BLOCK),
+	// emerald(Material.EMERALD, Material.EMERALD_BLOCK),
 	diamond(Material.DIAMOND, Material.DIAMOND_BLOCK);
 
 	// An <blockID> is worth <multiplier> <itemID>
