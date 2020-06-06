@@ -76,18 +76,13 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		}
 	}
 
-	private boolean isDoorOrChest(@NotNull Block block) {
-		return block.getState() instanceof InventoryHolder
-			|| block.getBlockData() instanceof Openable;
-	}
-
 	@EventHandler
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		Player player = event.getPlayer();
 		Block block = event.getClickedBlock();
 		if(block != null) {
 			System.out.println(block);
-			if(!isDoorOrChest(block)) {
+			if(!(block.getState() instanceof InventoryHolder) && !(block.getBlockData() instanceof Openable)) {
 				UUID wUID = block.getWorld().getUID();
 				Point point = new Point(block.getX(), block.getY(), block.getZ());
 				Optional<Zone> zoneOpt = landData.getZone(wUID, point);
