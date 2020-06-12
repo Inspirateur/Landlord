@@ -3,19 +3,22 @@ package io.github.Inspirateur.Landlord;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.Openable;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -76,24 +79,39 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		}
 	}
 
-	@EventHandler
-	public void onPlayerInteract(PlayerInteractEvent event) {
-		Player player = event.getPlayer();
-		Block block = event.getClickedBlock();
-		if(block != null) {
-			if(!(block.getState() instanceof InventoryHolder) && !(block.getBlockData() instanceof Openable)) {
-				UUID wUID = block.getWorld().getUID();
-				Point point = new Point(block.getX(), block.getY(), block.getZ());
-				Optional<Zone> zoneOpt = landData.getZone(wUID, point);
-				if(zoneOpt.isPresent()) {
-					Zone zone = zoneOpt.get();
-					UUID pUID = player.getUniqueId();
-					if(zone.protecs.get(Protections.playerGrief) && !zone.owner.equals(pUID) && !zone.guests.contains(pUID)) {
-						event.setCancelled(true);
-					}
-				}
+	private void onPlayerGrief(Cancellable event, Player player, Block block) {
+		Point point = new Point(
+			block.getX(), block.getY(), block.getZ()
+		);
+		UUID wUID = block.getWorld().getUID();
+		Optional<Zone> zoneOpt = landData.getZone(wUID, point);
+		if (zoneOpt.isPresent()) {
+			Zone zone = zoneOpt.get();
+			UUID pUID = player.getUniqueId();
+			if (zone.protecs.get(Protections.playerGrief) && !zone.owner.equals(pUID) && !zone.guests.contains(pUID)) {
+				event.setCancelled(true);
 			}
 		}
+	}
+
+	@EventHandler
+	public void onBlockPlace(BlockPlaceEvent event) {
+		onPlayerGrief(event, event.getPlayer(), event.getBlock());
+	}
+
+	@EventHandler
+	public void onBlockDamage(BlockDamageEvent event) {
+		onPlayerGrief(event, event.getPlayer(), event.getBlock());
+	}
+
+	@EventHandler
+	public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
+		onPlayerGrief(event, event.getPlayer(), event.getBlock());
+	}
+
+	@EventHandler
+	public void onPlayerBucketFill(PlayerBucketFillEvent event) {
+		onPlayerGrief(event, event.getPlayer(), event.getBlock());
 	}
 
 	@EventHandler

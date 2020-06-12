@@ -1,5 +1,5 @@
 name: Landlord
-version: "1.15"
+version: "1.0"
 main: io.github.Inspirateur.Landlord.Main
 author: Inspirateur
 description: Plugin to claim and protect lands in exchange for resources
