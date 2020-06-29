@@ -16,7 +16,6 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
-import org.bukkit.event.player.PlayerBucketEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
@@ -33,7 +32,6 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 
 	@Override
 	public void onEnable() {
-		getLogger().info("onEnable is called!");
 		landData = new LandData();
 		for (World w : getServer().getWorlds()) {
 			landData.registerWorld(w.getUID());
@@ -44,6 +42,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		getServer().getScheduler().scheduleSyncRepeatingTask(
 			this, new ZoneParticles(partialZones), 0L, 15L
 		);
+		getLogger().info("Landlord Ready");
 	}
 
 	@Override
