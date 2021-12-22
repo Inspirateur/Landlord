@@ -54,7 +54,7 @@ public class ZoneParticles implements Runnable {
 					}
 				}
 			} else {
-				// we Know one corner is defined
+				// we know one corner is defined
 				Point p = zone.corner1 == null? zone.corner2 : zone.corner1;
 				zone.world.spawnParticle(Particle.SPELL_INSTANT, p.x, p.y, p.z,
 					24, 0, 0, 0, 0.);

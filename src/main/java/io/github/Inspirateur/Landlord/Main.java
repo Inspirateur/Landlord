@@ -131,30 +131,14 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	@Override
 	public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, String label, String[] args) {
 		switch (label) {
-			case "corner1":
-				corner(sender, true);
-				break;
-			case "corner2":
-				corner(sender, false);
-				break;
-			case "cancel":
-				cancel(sender);
-				break;
-			case "land":
-				land(sender);
-				break;
-			case "protect":
-				protect(sender, args);
-				break;
-			case "unprotect":
-				unprotect(sender, args);
-				break;
-			case "add":
-				addOrRemove(sender, true, args);
-				break;
-			case "remove":
-				addOrRemove(sender, false, args);
-				break;
+			case "corner1" -> corner(sender, true);
+			case "corner2" -> corner(sender, false);
+			case "cancel" -> cancel(sender);
+			case "land" -> land(sender);
+			case "protect" -> protect(sender, args);
+			case "unprotect" -> unprotect(sender, args);
+			case "add" -> addOrRemove(sender, true, args);
+			case "remove" -> addOrRemove(sender, false, args);
 		}
 		return true;
 	}
@@ -184,10 +168,10 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			String msgCorner = "Corner %c was set to %s \nUse /corner%c to set the opposite corner of your zone";
 			if (partialZone.corner1 == null) {
 				partialZone.world = world;
-				player.sendMessage(String.format(msgCorner, '2', point.toString(), '1'));
+				player.sendMessage(String.format(msgCorner, '2', point, '1'));
 			} else if (partialZone.corner2 == null) {
 				partialZone.world = world;
-				player.sendMessage(String.format(msgCorner, '1', point.toString(), '2'));
+				player.sendMessage(String.format(msgCorner, '1', point, '2'));
 			} else {
 				Optional<Zone> overlap = landData.getZone(wUID, partialZone);
 				if (overlap.isPresent()) {
@@ -261,7 +245,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		for (Protections protec : protections) {
 			amount = Math.max(protec.price.amount * volume, 1);
 			currency = protec.price.currency;
-			msg.append(String.format("  - %s for %s \n", protec.toString(), currency.toString(amount)));
+			msg.append(String.format("  - %s for %s \n", protec, currency.toString(amount)));
 		}
 	}
 
@@ -278,7 +262,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 				player.getLocation().getBlockZ()
 			);
 			Optional<Zone> zone_opt = landData.getZone(wUID, pUID, point);
-			if (!zone_opt.isPresent()) {
+			if (zone_opt.isEmpty()) {
 				throw new NotInOwnZoneException();
 			}
 			zone = zone_opt.get();

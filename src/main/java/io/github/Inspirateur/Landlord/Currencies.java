@@ -1,5 +1,4 @@
 package io.github.Inspirateur.Landlord;
-
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -69,7 +68,7 @@ enum Currencies {
 				toGive.add(new ItemStack(block, n));
 				amountTemp -= n*multiplier;
 			} else {
-				n = Math.min(amountTemp, item.getMaxStackSize());
+				n = amountTemp;
 				toGive.add(new ItemStack(item, n));
 				amountTemp -= n;
 			}
@@ -96,7 +95,7 @@ enum Currencies {
 
 	public String toString(double amount) {
 		StringBuilder msg = new StringBuilder();
-		msg.append(String.format("%d %s", (int)amount, this.toString()));
+		msg.append(String.format("%d %s", (int)amount, this));
 		if (amount < multiplier) {
 			return msg.toString();
 		}
@@ -104,7 +103,7 @@ enum Currencies {
 		int itemAmount = (int)amount-blockAmount*multiplier;
 		msg.append(String.format(
 			" or %d %s %d %s", blockAmount, block.name().replace('_', ' '),
-			itemAmount, this.toString()
+			itemAmount, this
 		));
 		return msg.toString();
 	}

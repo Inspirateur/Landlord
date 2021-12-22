@@ -12,16 +12,12 @@ public class Point implements Serializable {
 	}
 
 	public int get(int i) {
-		switch (i) {
-			case 0:
-				return x;
-			case 1:
-				return y;
-			case 2:
-				return z;
-			default:
-				return 0;
-		}
+		return switch (i) {
+			case 0 -> x;
+			case 1 -> y;
+			case 2 -> z;
+			default -> 0;
+		};
 	}
 
 	@Override
