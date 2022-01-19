@@ -1,5 +1,4 @@
 package io.github.Inspirateur.Landlord;
-
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -143,6 +142,24 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		return true;
 	}
 
+	@Override
+	public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
+		if (label.equals("protect") || label.equals("unprotect")) {
+			Player player = (Player) sender;
+			try {
+				Zone zone = getOwnedZone(player);
+				if (label.equals("protect")) {
+					// a list with the lacking protections
+					return zone.protecs.keySet().stream().filter(p -> !zone.protecs.get(p)).map(Enum::toString).toList();
+				} else {
+					// a list with the existing protections
+					return zone.protecs.keySet().stream().filter(p -> zone.protecs.get(p)).map(Enum::toString).toList();
+				}
+			} catch (NotInOwnZoneException ignored) {}
+		}
+		return new ArrayList<>();
+	}
+
 	public void corner(CommandSender sender, boolean isCorner1) {
 		Player player = (Player) sender;
 		UUID pUID = player.getUniqueId();
@@ -277,7 +294,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 			if (args.length == 0) {
 				StringBuilder msg = new StringBuilder();
 				// make a list with the lacking protections
-				List<Protections> protecs = zone.protecs.keySet().stream().filter(p -> !zone.protecs.get(p)).collect(Collectors.toList());
+				List<Protections> protecs = zone.protecs.keySet().stream().filter(p -> !zone.protecs.get(p)).toList();
 				if (protecs.size() == 0) {
 					player.sendMessage("Your zone is fully protected");
 				} else {
@@ -350,7 +367,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 								int amount = Math.max((int)(zone.getVolume()*protection.price.amount), 1);
 								protection.price.currency.give(player, amount);
 								zone.protecs.put(protection, false);
-								player.sendMessage("Protection " + protectionName + " was succesfully removed from your zonw");
+								player.sendMessage("Protection " + protectionName + " was succesfully removed from your zone");
 								// checks if there is any protection left
 								if(zone.protecs.values().stream().filter(v->v).toArray().length == 0) {
 									landData.removeZone(player.getWorld().getUID(), player.getUniqueId(), zone);
