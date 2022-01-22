@@ -5,7 +5,7 @@ import java.util.*;
 
 public class LandData {
 	// <world, <player, [zone1, ...]>>
-	private Map<UUID, Map<UUID , List<Zone>>> zones;
+	public Map<UUID, Map<UUID , List<Zone>>> zones;
 
 	public LandData() {
 		this.load();

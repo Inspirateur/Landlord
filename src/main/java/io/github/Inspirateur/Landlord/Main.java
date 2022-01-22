@@ -19,6 +19,7 @@ import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.projectiles.ProjectileSource;
 import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,10 +33,19 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 	@Override
 	public void onEnable() {
 		landData = new LandData();
+		playerCache = new PlayerCache();
+		StringBuilder debuglog = new StringBuilder();
 		for (World w : getServer().getWorlds()) {
 			landData.registerWorld(w.getUID());
+			debuglog.append(w.getName()).append("\n");
+			for(UUID pUID: landData.zones.get(w.getUID()).keySet()) {
+				debuglog.append("\t").append(playerCache.get(pUID)).append(" (").append(pUID.toString()).append(")").append("\n");
+				for(Zone zone: landData.zones.get(w.getUID()).get(pUID)) {
+					debuglog.append("\t").append("\t").append(zone.owner.toString()).append(": ").append(zone.pMin.toString()).append(" - ").append(zone.pMax.toString()).append("\n");
+				}
+			}
 		}
-		playerCache = new PlayerCache();
+		System.out.println(debuglog);
 		partialZones = new HashMap<>();
 		Bukkit.getPluginManager().registerEvents(this, this);
 		getServer().getScheduler().scheduleSyncRepeatingTask(
@@ -57,20 +67,28 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 
 	@EventHandler
 	public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-		if (event.getEntity() instanceof Player) {
-			if (
-				(event.getDamager() instanceof Projectile && ((Projectile)event.getDamager()).getShooter() instanceof Player) ||
-				event.getDamager() instanceof Player
-			) {
-				Player player = (Player) event.getEntity();
-				UUID wUID = player.getWorld().getUID();
-				Point point = new Point(
-					player.getLocation().getBlockX(),
-					player.getLocation().getBlockY(),
-					player.getLocation().getBlockZ()
-				);
-				Optional<Zone> zone = landData.getZone(wUID, point);
-				if(zone.isPresent() && zone.get().protecs.get(Protections.PVP)) {
+		Entity attacker = event.getDamager();
+		if (attacker instanceof Projectile) {
+			ProjectileSource shooter = ((Projectile)attacker).getShooter();
+			if (shooter instanceof Entity) {attacker = (Entity) shooter;}
+		}
+		if (attacker instanceof Player) {
+			// the attacker is a player, check if the target is in a zone
+			Entity target = event.getEntity();
+			UUID wUID = target.getWorld().getUID();
+			Point point = new Point(
+				target.getLocation().getBlockX(),
+				target.getLocation().getBlockY(),
+				target.getLocation().getBlockZ()
+			);
+			Optional<Zone> zoneOpt = landData.getZone(wUID, point);
+			if(zoneOpt.isPresent()) {
+				Zone zone = zoneOpt.get();
+				// cancel the event if the zone is PVP protected and the target is a player
+				if (zone.protecs.get(Protections.PVP) && target instanceof Player){
+					event.setCancelled(true);
+				// cancel the event if the zone is PlayerGrief protected + the target is NOT a player + the attacker is not owner/guest
+				} else if (zone.protecs.get(Protections.playerGrief) && !(target instanceof Player) && zone.hasRights(attacker.getUniqueId())) {
 					event.setCancelled(true);
 				}
 			}
@@ -86,7 +104,7 @@ public class Main extends JavaPlugin implements Plugin, Listener {
 		if (zoneOpt.isPresent()) {
 			Zone zone = zoneOpt.get();
 			UUID pUID = player.getUniqueId();
-			if (zone.protecs.get(Protections.playerGrief) && !zone.owner.equals(pUID) && !zone.guests.contains(pUID)) {
+			if (zone.protecs.get(Protections.playerGrief) && !zone.hasRights(pUID)) {
 				event.setCancelled(true);
 			}
 		}

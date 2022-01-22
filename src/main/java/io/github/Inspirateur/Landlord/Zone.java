@@ -24,6 +24,10 @@ public class Zone implements Serializable {
 		this.guests = new HashSet<>();
 	}
 
+	public boolean hasRights(UUID playerID) {
+		return playerID.equals(this.owner) || guests.contains(playerID);
+	}
+
 	public int getVolume() {
 		return (this.pMax.x-this.pMin.x)*(this.pMax.y-this.pMin.y)*(this.pMax.z-this.pMin.z);
 	}
